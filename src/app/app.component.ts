@@ -3,6 +3,7 @@ import { Component, ViewChild } from '@angular/core';
 import { AgGridAngular } from 'ag-grid-angular';
 import { ColDef, GridReadyEvent, CellClickedEvent, GetRowIdFunc, ValueFormatterParams, GetRowIdParams, ValueGetterParams, GridApi } from 'ag-grid-community';
 import { Observable, Subscription, switchMap, take, timer } from 'rxjs';
+import { GridDataService } from './app.service';
 import { GridDataResponseModel } from './grid-data-response.model';
 
 @Component({
@@ -49,43 +50,31 @@ export class AppComponent {
       }
     },
   ];
-  // DefaultColDef sets props common to all Columns
   public defaultColDef: ColDef = {
     flex: 1,
     minWidth: 100,
     resizable: true,
     sortable: true
   };
-
   public getRowId: GetRowIdFunc = (params: GetRowIdParams) => {
     return params.data.code;
   };
-  // For accessing the Grid's API
   @ViewChild(AgGridAngular) agGrid!: AgGridAngular;
   private gridApi!: GridApi;
-
   public subscription !: Subscription;
-  constructor(private http: HttpClient) { }
+
+  constructor(private gridDataService: GridDataService) { }
 
   onGridReady(params: GridReadyEvent) {
     this.gridApi = params.api;
     this.subscription = timer(0, 600).pipe(
       take(200),
-      switchMap(() => this.http.get<any[]>('https://www.ag-grid.com/example-assets/stocks.json')))
+      switchMap(() => this.gridDataService.getGridData()))
       .subscribe(data => {
         data = data.map((values, i) => new GridDataResponseModel(values, i + 1)).slice(0, 300);
         params.api.setRowData((data as Array<any>))
       });
   }
-
-  // public onRemoveSelected() {
-  //   const rowsToRemove = this.gridApi.getSelectedRows();
-  //   const tx = {
-  //     remove: rowsToRemove,
-  //   };
-  //   this.gridApi.applyServerSideTransaction(tx);
-  // }
-
 }
 function numberFormatter(params: ValueFormatterParams) {
   if (typeof params.value === 'number') {
